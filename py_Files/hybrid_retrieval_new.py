@@ -1,3 +1,4 @@
+#noch nicht fertig!!!!!
 import pickle
 import json
 import numpy as np
