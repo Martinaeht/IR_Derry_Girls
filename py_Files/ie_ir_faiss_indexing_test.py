@@ -107,7 +107,7 @@ index_path = "/home/mlt_ml3/IR_Derry_Girls/Dataset/derry_girls_faiss.index"
 metadata_path = "/home/mlt_ml3/IR_Derry_Girls/Dataset/derry_girls_metadata.json"
 
 with open(index_path, "wb") as f:
-    faiss.write_index(index, faiss.PyCallbackIOWriter(f.write))
+    faiss.write_index(index, f)
 
 with open(metadata_path, "w", encoding="utf-8") as f:
     json.dump(indexed_lines, f, ensure_ascii=False, indent=2)
@@ -116,7 +116,7 @@ print(f"Saved FAISS index to: {index_path}")
 print(f"Saved metadata to: {metadata_path}")
 
 #Load FAISS index and metadata
-#index = faiss.read_index("derry_girls_faiss.index")
+#index = faiss.read_index("index_path")
 #with open("derry_girls_metadata.json", "r", encoding="utf-8") as f:
  #    indexed_lines = json.load(f)
 
