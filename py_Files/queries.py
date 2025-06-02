@@ -1,3 +1,5 @@
+# Indices from BM25/aligned with FAISS indices
+
 queries = {
     "What's that friendship programm called they take part in?": [12, 9],
     "How often do they talk about bombs?": [1622, 308, 15, 4078, 298, 33],

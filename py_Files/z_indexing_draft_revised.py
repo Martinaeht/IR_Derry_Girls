@@ -6,27 +6,10 @@ import re
 from collections import defaultdict
 from pprint import pprint
 
-"""# Import Dataset from kaggle
-
-!pip install kagglehub[hf-datasets]
-
-# Create the .kaggle directory if it doesn't exist
-os.makedirs('/root/.kaggle', exist_ok=True)
-
-!mv /content/drive/MyDrive/IR_Project/kaggle.json /root/.kaggle/
-
-# Set appropriate permissions for the file
-!chmod 600 /root/.kaggle/kaggle.json
-
-!kaggle datasets download -d eward96/full-derry-girls-script-s12 -p /content/drive/MyDrive/IR_Project/derry_girls_script
-
-!unzip /content/drive/MyDrive/IR_Project/derry_girls_script/full-derry-girls-script-s12.zip -d /content/drive/MyDrive/IR_Project/derry_girls_script/
-
-"""
 
 # Work with Dataset
 
-file_path = "/home/mlt_ml3/IR_Derry_Girls/Dataset/DERRY-GIRLS-SCRIPT.txt"  
+file_path = "/home/mlt_ml3/IR_Derry_Girls/Dataset/DERRY-GIRLS-SCRIPT.txt"
 
 with open(file_path, "r", encoding="windows-1252") as file:
     file_lines = file.readlines()  
@@ -34,7 +17,7 @@ with open(file_path, "r", encoding="windows-1252") as file:
 
 # Print a preview of the script content
 print("Preview of the script content:")
-pprint(file_lines[:5])  # Show the first 5 lines for context
+pprint(file_lines[:5])  
 
 #text processing class for tokenizing and working with text
 
@@ -139,7 +122,7 @@ def parse_episodes(file_lines):
 episodes_data = parse_episodes(file_lines)
 episodes = [Episode(ep) for ep in episodes_data]  # Convert dicts to Episode objects
 
-#i added tokenization and speaker here:
+# added tokenization and speaker here:
 
 def build_sentence_index(episodes_data):
     sentence_index = defaultdict(list)

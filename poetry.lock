@@ -1917,7 +1917,18 @@ h2 = ["h2 (>=4,<5)"]
 socks = ["pysocks (>=1.5.6,!=1.5.7,<2.0)"]
 zstd = ["zstandard (>=0.18.0)"]
 
+[[package]]
+name = "utils"
+version = "1.0.2"
+description = "A grab-bag of utility functions and objects"
+optional = false
+python-versions = ">=3.6"
+groups = ["main"]
+files = [
+    {file = "utils-1.0.2.tar.gz", hash = "sha256:f4d5157e27e9d434006b5b52a1ec951a34e53e7ecaa145d43a153ec452eb5d9e"},
+]
+
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "fa875b81d72854f4c9c39de6fd2f254504eec9a66092f1b99b19a9d6155b1c81"
+content-hash = "a5de527c50e0a01abdaac58b33909fec2c328489ce2b469566e98a869c7d43e1"
