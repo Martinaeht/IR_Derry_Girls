@@ -1,9 +1,12 @@
-#noch nicht fertig!!!!!
 import pickle
 import json
 import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer
+from sklearn.preprocessing import minmax_scale
+#from metrics import precision_at_k, reciprocal_rank, average_precision, ndcg_at_k, plot_metrics
+from queries import queries
+#from utils import normalize_string, normalize_text_for_faiss
 
 # --------- Load BM25 index and metadata ---------
 def load_bm25_index(pickle_path):
@@ -13,19 +16,18 @@ def load_bm25_index(pickle_path):
     docs = data["docs"]       # list of document texts, order matters
     metadata = data["metadata"]  # list of dicts with at least 'id' field
     # Build id->metadata dict
-    meta_by_id = {item["id"]: item for item in metadata}
-    return bm25, docs, meta_by_id
+    ids = {item["id"]: item for item in metadata}
+    return bm25, docs, metadata, ids
 
 # --------- Load FAISS index and metadata ---------
 def load_faiss_index(index_path, metadata_path):
     index = faiss.read_index(index_path)
     with open(metadata_path, "r", encoding="utf-8") as f:
         metadata = json.load(f)
-    meta_by_id = {item["id"]: item for item in metadata}
-    return index, meta_by_id
+    return index, metadata
 
 # --------- BM25 retrieval ---------
-def bm25_search(bm25, query, docs, meta_by_id, top_n=50):
+def bm25_search(bm25, query, docs, metadata, top_n=8):
     tokens = query.lower().split()  # adapt tokenization if needed
     scores = bm25.get_scores(tokens)  # returns numpy array with scores per doc index
     ranked_idx_scores = sorted(enumerate(scores), key=lambda x: x[1], reverse=True)
@@ -42,7 +44,7 @@ def bm25_search(bm25, query, docs, meta_by_id, top_n=50):
     return results
 
 # --------- FAISS retrieval ---------
-def faiss_search(faiss_index, model, query, meta_by_id, top_n=50):
+def faiss_search(faiss_index, model, query, meta_by_id, top_n=8):
     q_emb = model.encode([query])
     D, I = faiss_index.search(np.array(q_emb).astype(np.float32), top_n)
     results = []
