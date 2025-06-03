@@ -92,7 +92,8 @@ def faiss_search(query, index, model, metadata, k=k_faiss):
     
     return similarities
 
-def hybrid_search(query, bm25, docs, faiss_index, model, metadata, alpha=0.5, k=k_hybrid):
+def hybrid_search(query, bm25, docs, faiss_index, model, metadata, alpha=0.7, k=k_hybrid): #alpha was 0.5 at first meanng euqal weight for bm25 and faiss, but we want to give more weight to faiss, so I set it to 0.7
+    total_precision, total_rr, total_ap, total_ndcg = 0, 0, 0, 0
     bm25_results = bm25_search(query, bm25, docs, metadata, k=k_bm25)
     faiss_results = faiss_search(query, faiss_index, model, metadata, k=k_faiss)
 
@@ -199,7 +200,7 @@ def ndcg_at_k(retrieved, relevant, k):
     ideal_dcg = sum(rel / np.log2(i + 2) for i, rel in enumerate(ideal_retrieved))
     return dcg_at_k(retrieved, relevant, k) / ideal_dcg if ideal_dcg > 0 else 0.0
 
-def evaluate_hybrid(queries: dict, bm25, docs, faiss_index, model, metadata, alpha=0.5, k=8):
+def evaluate_hybrid(queries: dict, bm25, docs, faiss_index, model, metadata, alpha=0.7,  k=8): #alpha was 0.5 at first meanng euqal weight for bm25 and faiss, but we want to give more weight to faiss, so I set it to 0.7
     total_precision, total_rr, total_ap, total_ndcg = 0, 0, 0, 0
     valid_queries = 0
 
