@@ -161,8 +161,8 @@ def search_loop(bm25, docs, metadata, top_n=10):
 
 
 if __name__ == "__main__":
-    file_path = "/home/mlt_ml3/IR_Derry_Girls/Dataset/DERRY-GIRLS-SCRIPT.txt"  # your script filename
-    index_file = "/home/mlt_ml3/IR_Derry_Girls/Dataset/bm25_full_index_stemmed.pkl"     # where to save/load the index
+    file_path = "/home/mlt_ml3/IR_Derry_Girls/Dataset/DERRY-GIRLS-SCRIPT.txt" 
+    index_file = "/home/mlt_ml3/IR_Derry_Girls/Dataset/bm25_full_index_stemmed.pkl"    
 
     raw_lines = load_script(file_path)
     parsed_lines = parse_script(raw_lines)

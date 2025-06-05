@@ -1,7 +1,6 @@
 from utils.text_utils import Text
 
 def query_word_index(query, index):
-    """Search the token index for any matching words in the query."""
     query_tokens = Text([query]).tokenize()
     if not query_tokens:
         return []
@@ -16,8 +15,7 @@ def query_word_index(query, index):
     return results
 
 
-def format_occurrences(occurrences):
-    """Helper function to format index entries into result dictionaries."""
+def format_occurrences(occurrences): # formats index entries into result dictionaries
     return [
         {
             "sentence_id": f'S{entry["season"]},E{entry["episode"]}, LineNr.{entry["line_idx"]}',
