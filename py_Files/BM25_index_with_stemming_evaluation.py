@@ -175,8 +175,11 @@ def reciprocal_rank(retrieved, relevant):
             return 1.0 / (i + 1)
     return 0.0
 
+def accuracy_at_k(retrieved_ids, relevant_ids, k):
+    return int(any(doc_id in relevant_ids for doc_id in retrieved_ids[:k]))
 
 def evaluate_queries(bm25, docs, metadata, queries, k_values=[5, 8]):
+    all_accuracy = {k: [] for k in k_values}
     all_precisions = {k: [] for k in k_values}
     all_ndcg = {k: [] for k in k_values}
     all_ap = []
@@ -201,6 +204,9 @@ def evaluate_queries(bm25, docs, metadata, queries, k_values=[5, 8]):
             ndcg_k = ndcg_at_k(top_indices, relevant_indices, k)
             all_precisions[k].append(prec_k)
             all_ndcg[k].append(ndcg_k)
+            acc_k = accuracy_at_k(top_indices, relevant_indices, k)
+            all_accuracy[k].append(acc_k)
+            print(f"  Accuracy@{k}: {acc_k:.3f}")
             print(f"  Precision@{k}: {prec_k:.3f}")
             print(f"  NDCG@{k}: {ndcg_k:.3f}")
         
@@ -220,8 +226,10 @@ def evaluate_queries(bm25, docs, metadata, queries, k_values=[5, 8]):
     for k in k_values:
         mean_prec_k = np.mean(all_precisions[k])
         mean_ndcg_k = np.mean(all_ndcg[k])
+        mean_acc_k = np.mean(all_accuracy[k])
         print(f"Mean Precision@{k}: {mean_prec_k:.3f}")
         print(f"Mean NDCG@{k}: {mean_ndcg_k:.3f}")
+        print(f"Mean Accuracy@{k}: {mean_acc_k:.3f}")
     
     map_score = np.mean(all_ap)
     mrr_score = np.mean(all_rr)

@@ -179,7 +179,11 @@ def ndcg_at_k(retrieved, relevant, k):
     ideal_dcg = sum(rel / np.log2(i + 2) for i, rel in enumerate(ideal_retrieved))
     return dcg_at_k(retrieved, relevant, k) / ideal_dcg if ideal_dcg > 0 else 0.0
 
+def accuracy_at_k(retrieved_ids, relevant_ids):
+    return int(any(r in relevant_ids for r in retrieved_ids))
+
 def evaluate_faiss(queries: dict, model, index, normalize_fn, k=[5, 8]):
+    accuracy_scores = {k_val: [] for k_val in k}
     precision_scores = {k_val: [] for k_val in k}
     ndcg_scores = {k_val: [] for k_val in k}
     map_scores = []
@@ -207,6 +211,10 @@ def evaluate_faiss(queries: dict, model, index, normalize_fn, k=[5, 8]):
             precision_scores[k_val].append(precision_k)
             ndcg_scores[k_val].append(ndcg_k)
 
+            accuracy_k = accuracy_at_k(retrieved_ids, relevant_ids)
+            accuracy_scores[k_val].append(accuracy_k)
+
+            print(f"  Accuracy@{k_val}: {accuracy_k:.3f}")
             print(f"  Precision@{k_val}: {precision_k:.3f}")
             print(f"  NDCG@{k_val}: {ndcg_k:.3f}")
 
@@ -217,7 +225,6 @@ def evaluate_faiss(queries: dict, model, index, normalize_fn, k=[5, 8]):
 
         mrr = reciprocal_rank(retrieved_ids, relevant_ids)
         ap = average_precision(retrieved_ids, relevant_ids)
-
         mrr_scores.append(mrr)
         map_scores.append(ap)
 
@@ -229,6 +236,7 @@ def evaluate_faiss(queries: dict, model, index, normalize_fn, k=[5, 8]):
     for k_val in k:
         print(f"Precision@{k_val}: {np.mean(precision_scores[k_val]):.3f}")
         print(f"nDCG@{k_val}:        {np.mean(ndcg_scores[k_val]):.3f}")
+        print(f"Accuracy@{k_val}:    {np.mean(accuracy_scores[k_val]):.3f}")
     print(f"MAP:            {np.mean(map_scores):.3f}")
     print(f"MRR:            {np.mean(mrr_scores):.3f}")
 
