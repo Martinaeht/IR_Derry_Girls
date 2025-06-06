@@ -21,15 +21,6 @@ def find_ids_by_substring(sentences, parsed_lines):
 
 
 '''
-def find_index_by_substring(sentence, parsed_lines):
-    norm = normalize_text(sentence)
-    for entry in parsed_lines:
-        if "normalized_text" in entry and norm in entry["normalized_text"]:
-            return entry["id"]
-    return None
-
-
-
 def find_index_by_sentence(sentence, parsed_lines):
     norm = normalize_text(sentence)
     for entry in parsed_lines:
@@ -49,9 +40,9 @@ for sentence, ids in matches.items():
     print(f"\nSentence: '{sentence}'")
     if ids:
         for id_, text in ids:
-            print(f"→ ID: {id_}")
+            print(f"ID: {id_}")
     else:
-        print("→ No match found.")
+        print("No match found.")
 
 
 # print(find_index_by_substring("How long does it take to defuse a fecking bomb?", parsed_lines))

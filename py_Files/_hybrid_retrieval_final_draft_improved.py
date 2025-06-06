@@ -1,4 +1,4 @@
-#hybrid retrieval improved
+#hybrid retrieval with context improved
 import os
 import re
 import json
@@ -26,7 +26,7 @@ bm25_index_path = "/home/mlt_ml3/IR_Derry_Girls/Dataset/bm25_full_index_stemmed.
 def normalize_text(text):
     text = text.lower()
     text = unicodedata.normalize('NFKD', text)
-    text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')  # Remove accents
+    text = ''.join(c for c in text if unicodedata.category(c) != 'Mn') 
     text = re.sub(r'[^\w\s]', '', text)
     return text.strip()
 
@@ -35,28 +35,25 @@ def print_results_with_context(results, metadata, query, title="Results"):
     for rank, (score, doc_id) in enumerate(results, 1):
         doc = metadata[doc_id]
         scene = doc.get("scene", "Unknown Scene")
-        speaker = doc.get("speaker") or "NARRATION"
+        speaker = doc.get("speaker") 
         
-        # Get context (line before and after)
         context_before = ""
         context_after = ""
-        
-        # Find lines before and after (if they exist and are in same scene)
+  
         if doc_id > 0 and doc_id - 1 < len(metadata):
             prev_doc = metadata[doc_id - 1]
             if prev_doc.get("scene") == scene and prev_doc.get("clean_text"):
-                prev_speaker = prev_doc.get("speaker") or "NARRATION"
+                prev_speaker = prev_doc.get("speaker") 
                 context_before = f"[BEFORE] {prev_speaker}: {prev_doc['clean_text']}"
         
         if doc_id + 1 < len(metadata):
             next_doc = metadata[doc_id + 1]
             if next_doc.get("scene") == scene and next_doc.get("clean_text"):
-                next_speaker = next_doc.get("speaker") or "NARRATION"
+                next_speaker = next_doc.get("speaker")
                 context_after = f"[AFTER] {next_speaker}: {next_doc['clean_text']}"
         
         print(f"{rank}. [Score: {score:.4f}] [ID: {doc_id}] Scene: {scene}")
-        
-        # Print context
+       
         if context_before:
             print(f"   {context_before}")
         
@@ -80,8 +77,7 @@ def bm25_search(query, bm25, docs, metadata, k=k_bm25):
 def faiss_search(query, index, model, metadata, k=k_faiss):
     query_embedding = model.encode([normalize_text(query)])
     scores, indices = index.search(np.array(query_embedding).astype('float32'), k)
-    
-    # Convert L2 distances to similarities (lower distance = higher similarity)
+
     similarities = [(1.0 / (1.0 + scores[0][i]), int(indices[0][i])) for i in range(k)]
     
     print(f"[faiss_search] Query: {query}")
@@ -91,39 +87,30 @@ def faiss_search(query, index, model, metadata, k=k_faiss):
     return similarities
 
 def improved_hybrid_search(query, bm25, docs, faiss_index, model, metadata, alpha=0.5, k=8):
-    # Get more candidates for better fusion
-    bm25_results = bm25_search(query, bm25, docs, metadata, k=k_bm25*2)  # Get more candidates
+    bm25_results = bm25_search(query, bm25, docs, metadata, k=k_bm25*2)
     faiss_results = faiss_search(query, faiss_index, model, metadata, k=k_faiss*2)
 
-    # Extract scores and doc IDs
     bm25_doc_ids = [doc_id for _, doc_id in bm25_results]
     bm25_scores = np.array([score for score, _ in bm25_results]).reshape(-1, 1)
 
     faiss_doc_ids = [doc_id for _, doc_id in faiss_results]
     faiss_scores = np.array([score for score, _ in faiss_results]).reshape(-1, 1)
 
-    # Improved normalization - use rank-based scoring for more stable results
     def rank_normalize(scores):
-        """Convert scores to rank-based normalization (1.0 for best, decreasing)"""
-        ranks = np.argsort(np.argsort(-scores.flatten())) + 1  # Higher score = lower rank number
-        return 1.0 / ranks  # Convert to similarity (higher = better)
+        ranks = np.argsort(np.argsort(-scores.flatten())) + 1 
+        return 1.0 / ranks  
 
-    # Apply rank normalization
     bm25_norm_scores = rank_normalize(bm25_scores)
     faiss_norm_scores = rank_normalize(faiss_scores)
 
-    # Combine with reciprocal rank fusion approach
     combined = defaultdict(float)
-    
-    # BM25 contribution
+
     for doc_id, score in zip(bm25_doc_ids, bm25_norm_scores):
         combined[doc_id] += (1 - alpha) * score
-    
-    # FAISS contribution  
+ 
     for doc_id, score in zip(faiss_doc_ids, faiss_norm_scores):
         combined[doc_id] += alpha * score
 
-    # Final ranking
     ranked = sorted(combined.items(), key=lambda x: x[1], reverse=True)[:k]
     hybrid_results = [(score, doc_id) for doc_id, score in ranked]
 
@@ -159,70 +146,33 @@ def ndcg_at_k(retrieved, relevant, k):
     ideal_dcg = sum(rel / np.log2(i + 2) for i, rel in enumerate(ideal_retrieved))
     return dcg_at_k(retrieved, relevant, k) / ideal_dcg if ideal_dcg > 0 else 0.0
 
-def enhanced_evaluate_hybrid(queries: dict, bm25, docs, faiss_index, model, metadata, alpha=0.5, k=8):
-    total_precision, total_rr, total_ap, total_ndcg = 0, 0, 0, 0
-    valid_queries = 0
-    
-    results_summary = []
+def evaluate_hybrid(queries: dict, bm25, docs, faiss_index, model, metadata, alpha=0.5, k_vals=[5, 8]):
+    precision_scores = {k: [] for k in k_vals}
+    ndcg_scores = {k: [] for k in k_vals}
+    map_scores = []
+    mrr_scores = []
 
     for query, relevant_ids in queries.items():
-        if not relevant_ids:
-            continue
-        
-        hybrid_results, bm25_results, faiss_results = improved_hybrid_search(
-            query, bm25, docs, faiss_index, model, metadata, alpha, k
-        )
+        hybrid_results, _, _ = improved_hybrid_search(query, bm25, docs, faiss_index, model, metadata, alpha, max(k_vals))
         retrieved_ids = [doc_id for _, doc_id in hybrid_results]
 
-        # Calculate metrics
-        precision = precision_at_k(retrieved_ids, relevant_ids, k)
-        rr = reciprocal_rank(retrieved_ids, relevant_ids)
-        ap = average_precision(retrieved_ids, relevant_ids)
-        ndcg = ndcg_at_k(retrieved_ids, relevant_ids, k)
-        
-        # Count hits
-        hits = sum(1 for doc_id in retrieved_ids if doc_id in relevant_ids)
-        
-        total_precision += precision
-        total_rr += rr
-        total_ap += ap
-        total_ndcg += ndcg
-        valid_queries += 1
+        for k in k_vals:
+            precision = precision_at_k(retrieved_ids, relevant_ids, k)
+            ndcg = ndcg_at_k(retrieved_ids, relevant_ids, k)
+            precision_scores[k].append(precision)
+            ndcg_scores[k].append(ndcg)
 
-        print(f"\n{'='*80}")
-        print(f"Query: {query}")
-        print(f"Relevant IDs: {relevant_ids}")
-        print(f"Retrieved IDs: {retrieved_ids}")
-        print(f"Hits: {hits}/{k} | P@{k}: {precision:.3f} | MRR: {rr:.3f} | AP: {ap:.3f} | nDCG@{k}: {ndcg:.3f}")
-        
-        results_summary.append({
-            'query': query,
-            'hits': hits,
-            'precision': precision,
-            'mrr': rr,
-            'ap': ap,
-            'ndcg': ndcg
-        })
+        map_scores.append(average_precision(retrieved_ids, relevant_ids))
+        mrr_scores.append(reciprocal_rank(retrieved_ids, relevant_ids))
 
-        print_results_with_context(hybrid_results, metadata, query, title="Hybrid Results with Context")
-        print("=" * 80)
-
-    if valid_queries > 0:
-        print(f"\n{'='*50} FINAL RESULTS {'='*50}")
-        print(f"Average Precision@{k}: {total_precision / valid_queries:.4f}")
-        print(f"Mean Reciprocal Rank: {total_rr / valid_queries:.4f}")
-        print(f"Mean Average Precision: {total_ap / valid_queries:.4f}")
-        print(f"Mean nDCG@{k}: {total_ndcg / valid_queries:.4f}")
-        
-        # Show best and worst performing queries
-        results_summary.sort(key=lambda x: x['precision'], reverse=True)
-        print(f"\nBest performing query (P@{k}={results_summary[0]['precision']:.3f}): {results_summary[0]['query']}")
-        print(f"Worst performing query (P@{k}={results_summary[-1]['precision']:.3f}): {results_summary[-1]['query']}")
-    else:
-        print("No valid queries found.")
+    print (f"\n Average metric scores for queries")
+    for k in k_vals:
+        print(f"Precision@{k}: {np.mean(precision_scores[k]):.3f}")
+        print(f"nDCG@{k}:        {np.mean(ndcg_scores[k]):.3f}")
+    print(f"MAP:            {np.mean(map_scores):.3f}")
+    print(f"MRR:            {np.mean(mrr_scores):.3f}")
 
 def tune_hybrid_parameters(queries, bm25, docs, faiss_index, model, metadata, k=8):
-    """Test different alpha values to find optimal hybrid combination"""
     alpha_values = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
     best_alpha = 0.5
     best_map = 0.0
@@ -272,20 +222,16 @@ def main():
         docs = bm25_data["docs"]
         bm25_metadata = bm25_data["metadata"]
 
-    # Lade FAISS
     faiss_index = faiss.read_index(faiss_index_path)
     with open(faiss_metadata_path, "r", encoding="utf-8") as f:
         faiss_metadata = json.load(f)
 
     model = SentenceTransformer(model_name)
 
-    # Tune parameters
     optimal_alpha = tune_hybrid_parameters(queries, bm25, docs, faiss_index, model, faiss_metadata)
-    
-    # Run evaluation with optimal parameters
-    enhanced_evaluate_hybrid(queries, bm25, docs, faiss_index, model, faiss_metadata, alpha=optimal_alpha)
-    
-    # Interactive search with context
+
+    evaluate_hybrid(queries, bm25, docs, faiss_index, model, faiss_metadata, alpha=optimal_alpha)
+
     while True:
         query = input("\nType your query or 'exit' if you want to quit: ").strip()
         if query.lower() == "exit":

@@ -111,6 +111,9 @@ def evaluate(queries, index, metadata, top_k=5):
         idcg = calculate_dcg(ideal_relevance)
         ndcg = dcg / idcg if idcg > 0 else 0
         
+        retrieved_answers = [f"{j+1}. ID: {meta.get('id', 'N/A')}, Score: {sim:.4f}, Answer: {meta.get('answer', '[No answer field]')}"
+                             for j, (meta, sim) in enumerate(search_results)]
+
         results[query] = {
             "Recall@k": recall_at_k,
             "Precision@k": precision_at_k,
@@ -200,8 +203,7 @@ top_k = 5
 # Run evaluation
 evaluation_results = evaluate(queries, index, metadata, top_k=top_k)
 
-# Print final results per query
-print("\n=== FINAL RESULTS ===")
+print("\nFinal results per query:")
 for query, metrics in evaluation_results.items():
     print(f"Query: {query}")
     print(f"Recall@{top_k}: {metrics['Recall@k']:.4f}")
@@ -210,4 +212,7 @@ for query, metrics in evaluation_results.items():
     print(f"MRR: {metrics['MRR']:.4f}")
     print(f"MAP: {metrics['MAP']:.4f}")
     print(f"NDCG@{top_k}: {metrics['NDCG@k']:.4f}")
+    print("Retrieved Answers:")
+    for answer in metrics["Retrieved Answers"]:
+        print(f"  {answer}")
     print("-" * 50)
