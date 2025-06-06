@@ -1,7 +1,7 @@
 import re
 
 def clean_text(text):
-    return re.sub(r"\([^)]*\)", "", text).strip() # Removes anything in parentheses
+    return re.sub(r"\([^)]*\)", "", text).strip() 
 
 def parse_episodes(file_lines):
     episodes = []

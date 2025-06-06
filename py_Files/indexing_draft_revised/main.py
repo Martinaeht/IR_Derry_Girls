@@ -8,13 +8,11 @@ from index.query_sentence_index import query_sentence_index
 from index.query_word_index import query_word_index  
 from utils.text_utils import Text
 from episode import Episode  
-
-# Configuration 
+ 
 script_path = "/home/mlt_ml3/IR_Derry_Girls/py_Files/indexing_draft_revised/data/DERRY-GIRLS-SCRIPT.txt"
 output_dir = "/home/mlt_ml3/IR_Derry_Girls/py_Files/indexing_draft_revised/index"
 os.makedirs(output_dir, exist_ok=True)
 
-# Load and parse script 
 with open(script_path, "r", encoding="windows-1252") as file:
     file_lines = file.readlines()
 
@@ -24,7 +22,6 @@ pprint(file_lines[:5])
 episodes_data = parse_episodes(file_lines)
 episodes = [Episode(ep) for ep in episodes_data]
 
-# Build and save indexes
 sentence_index = build_sentence_index(episodes_data)
 token_index = build_token_index(episodes)
 

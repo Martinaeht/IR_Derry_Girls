@@ -1,5 +1,4 @@
-#from py_Files.SPLADE.splade_relu_log import normalize_text, encode_splade, load_and_parse_script
-from splade_relu_log import normalize_text, encode_splade, load_and_parse_script
+from splade_relu_log import normalize_text
 import os
 import json 
 
@@ -18,7 +17,6 @@ def find_ids_by_substring(sentences, parsed_lines):
                 matches.append((entry["id"], entry["normalized_text"]))
         results[sentence] = matches
     return results
-
 
 '''
 def find_index_by_sentence(sentence, parsed_lines):

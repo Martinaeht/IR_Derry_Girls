@@ -1,4 +1,3 @@
-#FAISS Indexing with all-mpnet-base-v2
 from pprint import pprint
 from sentence_transformers import SentenceTransformer
 from collections import defaultdict
@@ -47,19 +46,10 @@ for line_number, raw_line in enumerate(raw_lines):
         season = int(season_match.group(1))
         continue
 
-    #if season_pattern.match(line):
-    #    season = int(season_pattern.match(line).group(1))
-    #    continue
-
     episode_match = episode_pattern.match(line)
     if episode_match:
         episode = int(episode_match.group(1))
         continue
-
-    #if episode_pattern.match(line):
-    #    episode = int(episode_pattern.match(line).group(1))
-    #    continue
-
 
     scene_match = scene_pattern.match(line)
     if scene_match:
@@ -76,23 +66,7 @@ for line_number, raw_line in enumerate(raw_lines):
             "raw_line": line
         })
         continue
-    
-    '''    
-    if scene_pattern.match(line):
-        scene = scene_pattern.match(line).group(1).strip()
-        parsed_lines.append({
-            "id": len(parsed_lines),
-            "line_number": line_number,
-            "season": season,
-            "episode": episode,
-            "scene": scene,
-            "speaker": None,
-            "actions": [],
-            "clean_text": None,
-            "raw_line": line
-        })
-        continue
-    '''
+
 
     speaker_match = speaker_pattern.match(line)
     if speaker_match:
@@ -157,26 +131,6 @@ print(f"Saved metadata to: {metadata_path}")
 
 k=5
 
-import matplotlib.pyplot as plt
-
-def plot_metrics(precision, mrr, map_, ndcg, label="FAISS", k=5):
-    metrics = [precision, mrr, map_, ndcg]
-    labels = ["Precision@{}".format(k), "MRR", "MAP", "nDCG@{}".format(k)]
-
-    plt.figure(figsize=(8, 5))
-    bars = plt.bar(labels, metrics, color="skyblue", edgecolor="black")
-    plt.ylim(0, 1.0)
-    plt.title(f"Evaluation Metrics for {label}")
-    plt.ylabel("Score (0 to 1)")
-
-    # Add score labels on top of bars
-    for bar, metric in zip(bars, metrics):
-        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.02,
-                 f"{metric:.2f}", ha="center", va="bottom")
-
-    plt.grid(axis="y", linestyle="--", alpha=0.7)
-    plt.tight_layout()
-    plt.show()
 
 print("\nEnter your search query (type 'exit' to quit):")
 while True:
@@ -202,7 +156,6 @@ while True:
             print(f"   Actions: {'; '.join(line['actions'])}")
         print("-" * 60)
 
-#first try for evaluation with queries file
 def precision_at_k(retrieved, relevant, k):
     retrieved_k = retrieved[:k]
     return sum(1 for doc_id in retrieved_k if doc_id in relevant) / k
@@ -248,11 +201,8 @@ def evaluate_faiss(queries: dict, model, index, normalize_fn, k=5):
 
         retrieved_ids = list(I[0])
         if len(retrieved_ids) < k:
-    # Pad with -1 or dummy IDs that are guaranteed not to be relevant
             retrieved_ids += [-1] * (k - len(retrieved_ids))
 
-
-        # Metrics
         prec = precision_at_k(retrieved_ids, relevant_ids, k)
         mrr = reciprocal_rank(retrieved_ids, relevant_ids)
         ap = average_precision(retrieved_ids, relevant_ids)
@@ -269,14 +219,11 @@ def evaluate_faiss(queries: dict, model, index, normalize_fn, k=5):
         map_scores.append(ap)
         ndcg_scores.append(ndcg)
 
-    # Summary
-    print("\nAVERAGE METRICS:")
+    print("\nAverage metrics:")
     print(f"Precision@{k}: {np.mean(precision_scores):.3f}")
     print(f"MRR:            {np.mean(mrr_scores):.3f}")
     print(f"MAP:            {np.mean(map_scores):.3f}")
     print(f"nDCG@{k}:        {np.mean(ndcg_scores):.3f}")
 
-    plot_metrics(np.mean(precision_scores), np.mean(mrr_scores),
-                 np.mean(map_scores), np.mean(ndcg_scores), label="FAISS", k=k)
 
 evaluate_faiss(queries, model, index, normalize_text_for_faiss, k)

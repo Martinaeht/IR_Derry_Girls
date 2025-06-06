@@ -7,33 +7,26 @@ from transformers import AutoTokenizer, AutoModelForMaskedLM
 from scipy.sparse import csr_matrix, save_npz, load_npz
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Load SPLADE model and tokenizer
 model_name = "naver/splade-cocondenser-ensembledistil"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForMaskedLM.from_pretrained(model_name)
 
-# Normalize text
 def normalize_text(text: str) -> str:
     text = text.lower()
     text = ''.join(c for c in text if c.isalnum() or c.isspace())
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
-# CORRECTED: Proper SPLADE encoding function
 def encode_splade(texts):
     inputs = tokenizer(texts, return_tensors="pt", padding=True, truncation=True, max_length=512)
     with torch.no_grad():
         outputs = model(**inputs)
-        # Proper SPLADE encoding: ReLU + log transformation
         logits = outputs.logits
         relu_log = torch.log(1 + torch.relu(logits))
-        # Mask out padding tokens
         weighted_log = relu_log * inputs.attention_mask.unsqueeze(-1)
-        # Sum over sequence length to get sparse document representation
         sparse_vectors = torch.sum(weighted_log, dim=1)
     return sparse_vectors.cpu().numpy()
 
-# Load and parse the script
 def load_and_parse_script(file_path):
     season_pattern = re.compile(r"^SEASON\s+(\d+)", re.IGNORECASE)
     episode_pattern = re.compile(r"^EPISODE\s+(\d+)", re.IGNORECASE)
@@ -104,34 +97,27 @@ def load_and_parse_script(file_path):
 
     return parsed_lines
 
-# Build sparse matrix index
 def build_index(sparse_vectors):
     return csr_matrix(sparse_vectors)
 
-# CORRECTED: Search function using proper SPLADE encoding
 def search(query, index, metadata, top_k=5):
     query_vector = encode_splade([normalize_text(query)])
     similarities = cosine_similarity(query_vector, index).flatten()
     top_indices = similarities.argsort()[-top_k:][::-1]
     return [(metadata[i], similarities[i]) for i in top_indices]
 
-# ADDED: Function to create evaluation-compatible metadata
 def create_evaluation_metadata(parsed_lines):
-    """Create metadata that works with evaluation code"""
-    # Filter to only include lines with text content
     filtered_lines = [line for line in parsed_lines if line.get("normalized_text")]
     
-    # Create a mapping from original indices to filtered indices
     evaluation_metadata = []
     for i, line in enumerate(filtered_lines):
         eval_line = line.copy()
-        # Make sure each document has a unique ID for evaluation
-        eval_line["eval_index"] = i  # This will be the index in the sparse matrix
+        eval_line["eval_index"] = i  
         evaluation_metadata.append(eval_line)
     
     return evaluation_metadata
 
-# Main function with improved index building
+
 def main():
     script_path = "/home/mlt_ml3/IR_Derry_Girls/Dataset/DERRY-GIRLS-SCRIPT.txt"
     index_path = "/home/mlt_ml3/IR_Derry_Girls/py_Files/SPLADE/splade_index_relu.npz"
@@ -146,14 +132,12 @@ def main():
         print("Parsing script and building new index with SPLADE encoding...")
         parsed_lines = load_and_parse_script(script_path)
         
-        # Create evaluation-compatible metadata
         evaluation_metadata = create_evaluation_metadata(parsed_lines)
         
-        # Extract documents for encoding
         documents = [line["normalized_text"] for line in evaluation_metadata]
         
         print(f"Encoding {len(documents)} documents...")
-        # Encode in batches to avoid memory issues
+        
         batch_size = 32
         all_vectors = []
         
@@ -166,11 +150,8 @@ def main():
         sparse_vectors = np.vstack(all_vectors)
         print(f"Created sparse vectors with shape: {sparse_vectors.shape}")
         
-        # Build and save index
         index = build_index(sparse_vectors)
         save_npz(index_path, index)
-        
-        # Save metadata
         with open(metadata_path, 'w') as f:
             json.dump(evaluation_metadata, f, indent=2)
         
@@ -188,7 +169,7 @@ def main():
         for rank, (meta, score) in enumerate(results, start=1):
             print(f"\n{rank}. [Score: {score:.4f}] ID: {meta['id']} Season {meta['season']} Episode {meta['episode']}")
             print(f"Scene: {meta['scene']}")
-            print(f"{meta['speaker'] or 'NARRATION'}: {meta['clean_text']}")
+            print(f"{meta['speaker']}: {meta['clean_text']}")
             if meta['actions']:
                 print(f"Actions: {'; '.join(meta['actions'])}")
             print("-" * 50)

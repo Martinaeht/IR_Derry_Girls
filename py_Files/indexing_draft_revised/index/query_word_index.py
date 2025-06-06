@@ -15,7 +15,7 @@ def query_word_index(query, index):
     return results
 
 
-def format_occurrences(occurrences): # formats index entries into result dictionaries
+def format_occurrences(occurrences): 
     return [
         {
             "sentence_id": f'S{entry["season"]},E{entry["episode"]}, LineNr.{entry["line_idx"]}',

@@ -77,9 +77,3 @@ queries = {
     #The mural on our house, the spray paint. It was Emmett, and I can prove it.
 }
 
-
-    # Erin: Good one, Geldoff! (sees David) Oh my God. David. David Donnelly. Okay, just act normal. (laughs dramatically and starts walking) No way. Are you serious? Clare: (concerned and confused) What are you doing? Who are you talking to? David: Erin, have you got a light? Erin: Me? No, I don't smoke. (whispers to self) Why the hell do I not smoke?
-    # Erin: Cool poster. David: Oh, do you think so? (lights cigarette) Erin: Yeah. Really nice use of, you know, letters. David: Thanks. You should come along tonight. Erin: You're inviting me to your gig? David: Yeah, well, all of you. Erin: (smirks) But you'd specifically like me to go. I mean, just so we're clear.
-    # Erin: Orla's mental. Come on Michelle! I'm begging you! It's my big chance with David. I'd do it for you.
-    # Erin: I cannot actually believe this. I'm missing David Donnelly's gig, Michelle.
-    # Erin: Oh, Christ, David. David Donnelly's just come in. David's here. Right. Okay. Don't look. Nobody look.
