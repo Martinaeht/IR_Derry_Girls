@@ -9,7 +9,7 @@ queries = {
     "What show does Erin never miss?": [86],
     "Where's the class trip going to?": [337, 336, 351, 363, 580],
     "How many bags of chips do they end up ordering?": [451, 450, 414, 410, 401, 393],
-    "Is James gay or straight?": [2039, 2095, 634, 678, 1439, 679, 680],
+    "Is James gay?": [2039, 2095, 634, 678, 1439, 679, 680],
     "What's Erin's dog called?": [656, 685, 707, 696, 979, 908, 973, 855],
     "What's the school's paper called? ": [1990],
     "Who does the priest hook up with?": [2303, 1012],

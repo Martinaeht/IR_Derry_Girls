@@ -46,7 +46,7 @@ def parse_script(raw_lines):
         if not line:
             continue
 
-        if line.upper().startswith("SEASON"):  # ← Changed from "SEASON" in line.upper()
+        if line.upper().startswith("SEASON"):  
             season_match = re.search(r"\d+", line)  # ← Store the match result
             if season_match:  # ← Check if match exists before calling .group()
                 season = int(season_match.group())

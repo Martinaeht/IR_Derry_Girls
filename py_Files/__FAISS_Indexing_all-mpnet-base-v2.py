@@ -123,28 +123,7 @@ with open(metadata_path, "w", encoding="utf-8") as f:
 print(f"Saved FAISS index to: {index_path}")
 print(f"Saved metadata to: {metadata_path}")
 
-k=10
-
-import matplotlib.pyplot as plt
-
-def plot_metrics(precision, mrr, map_, ndcg, label="FAISS", k=10):
-    metrics = [precision, mrr, map_, ndcg]
-    labels = ["Precision@{}".format(k), "MRR", "MAP", "nDCG@{}".format(k)]
-
-    plt.figure(figsize=(8, 5))
-    bars = plt.bar(labels, metrics, color="skyblue", edgecolor="black")
-    plt.ylim(0, 1.0)
-    plt.title(f"Evaluation Metrics for {label}")
-    plt.ylabel("Score (0 to 1)")
-
-    # Add score labels on top of bars
-    for bar, metric in zip(bars, metrics):
-        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.02,
-                 f"{metric:.2f}", ha="center", va="bottom")
-
-    plt.grid(axis="y", linestyle="--", alpha=0.7)
-    plt.tight_layout()
-    plt.show()
+k=8
 
 print("\nEnter your search query (type 'exit' to quit):")
 while True:
@@ -165,12 +144,11 @@ while True:
         line = indexed_lines[idx]
         print(f"{rank+1}. [ID {idx}] Season {line['season']} Episode {line['episode']}")
         print(f"   Scene: {line['scene']}")
-        print(f"   {line['speaker'] or 'NARRATION'}: {line['clean_text']}")
+        print(f"   {line['speaker']}: {line['clean_text']}")
         if line['actions']:
             print(f"   Actions: {'; '.join(line['actions'])}")
         print("-" * 60)
 
-#first try for evaluation with queries file
 def precision_at_k(retrieved, relevant, k):
     retrieved_k = retrieved[:k]
     return sum(1 for doc_id in retrieved_k if doc_id in relevant) / k
@@ -201,50 +179,57 @@ def ndcg_at_k(retrieved, relevant, k):
     ideal_dcg = sum(rel / np.log2(i + 2) for i, rel in enumerate(ideal_retrieved))
     return dcg_at_k(retrieved, relevant, k) / ideal_dcg if ideal_dcg > 0 else 0.0
 
-def evaluate_faiss(queries: dict, model, index, normalize_fn, k=10):
-    precision_scores = []
-    mrr_scores = []
+def evaluate_faiss(queries: dict, model, index, normalize_fn, k=[5, 8]):
+    precision_scores = {k_val: [] for k_val in k}
+    ndcg_scores = {k_val: [] for k_val in k}
     map_scores = []
-    ndcg_scores = []
+    mrr_scores = []
 
-    print(f"Evaluating FAISS index with top-{k} ranking metrics...\n")
+    print(f"Evaluating FAISS index...\n")
 
     for query, relevant_ids in queries.items():
         normalized_query = normalize_fn(query)
         query_embedding = model.encode([normalized_query])
-        D, I = index.search(np.array(query_embedding), k)
-
-        retrieved_ids = list(I[0])
-        if len(retrieved_ids) < k:
-    # Pad with -1 or dummy IDs that are guaranteed not to be relevant
-            retrieved_ids += [-1] * (k - len(retrieved_ids))
-
-
-        # Metrics
-        prec = precision_at_k(retrieved_ids, relevant_ids, k)
-        mrr = reciprocal_rank(retrieved_ids, relevant_ids)
-        ap = average_precision(retrieved_ids, relevant_ids)
-        ndcg = ndcg_at_k(retrieved_ids, relevant_ids, k)
 
         print(f"Query: {query}")
         print(f"Expected: {relevant_ids}")
-        print(f"Retrieved: {retrieved_ids}")
-        print(f"Precision@{k}: {prec:.2f} | MRR: {mrr:.2f} | MAP: {ap:.2f} | nDCG@{k}: {ndcg:.2f}")
-        print("-" * 60)
 
-        precision_scores.append(prec)
+        for k_val in k:
+            D, I = index.search(np.array(query_embedding), k_val)
+            retrieved_ids = list(I[0])
+
+            if len(retrieved_ids) < k_val:
+                retrieved_ids += [-1] * (k_val - len(retrieved_ids))
+
+            precision_k = precision_at_k(retrieved_ids, relevant_ids, k_val)
+            ndcg_k = ndcg_at_k(retrieved_ids, relevant_ids, k_val)
+
+            precision_scores[k_val].append(precision_k)
+            ndcg_scores[k_val].append(ndcg_k)
+
+            print(f"  Precision@{k_val}: {precision_k:.3f}")
+            print(f"  NDCG@{k_val}: {ndcg_k:.3f}")
+
+        # Use the largest k for MAP and MRR
+        max_k = max(k)
+        D, I = index.search(np.array(query_embedding), max_k)
+        retrieved_ids = list(I[0])
+
+        mrr = reciprocal_rank(retrieved_ids, relevant_ids)
+        ap = average_precision(retrieved_ids, relevant_ids)
+
         mrr_scores.append(mrr)
         map_scores.append(ap)
-        ndcg_scores.append(ndcg)
 
-    # Summary
+        print(f"  MRR: {mrr:.3f}")
+        print(f"  MAP: {ap:.3f}")
+        print("-" * 60)
+
     print("\nAVERAGE METRICS:")
-    print(f"Precision@{k}: {np.mean(precision_scores):.3f}")
-    print(f"MRR:            {np.mean(mrr_scores):.3f}")
+    for k_val in k:
+        print(f"Precision@{k_val}: {np.mean(precision_scores[k_val]):.3f}")
+        print(f"nDCG@{k_val}:        {np.mean(ndcg_scores[k_val]):.3f}")
     print(f"MAP:            {np.mean(map_scores):.3f}")
-    print(f"nDCG@{k}:        {np.mean(ndcg_scores):.3f}")
+    print(f"MRR:            {np.mean(mrr_scores):.3f}")
 
-    plot_metrics(np.mean(precision_scores), np.mean(mrr_scores),
-                 np.mean(map_scores), np.mean(ndcg_scores), label="FAISS", k=k)
-
-evaluate_faiss(queries, model, index, normalize_text_for_faiss, k)
+evaluate_faiss(queries, model, index, normalize_text_for_faiss, k=[5, 8])
