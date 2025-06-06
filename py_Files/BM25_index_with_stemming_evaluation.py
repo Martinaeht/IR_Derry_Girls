@@ -185,9 +185,7 @@ def evaluate_queries(bm25, docs, metadata, queries, k_values=[5, 8]):
     all_ap = []
     all_rr = []
     
-    print("=" * 80)
     print("EVALUATION RESULTS")
-    print("=" * 80)
     
     for query_text, relevant_indices in queries.items():
         print(f"\nQuery: '{query_text}'")
