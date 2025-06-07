@@ -1,4 +1,4 @@
-#hybrid retrieval with context improved
+#hybrid retrieval with more printed context lines
 import os
 import re
 import json
@@ -44,13 +44,13 @@ def print_results_with_context(results, metadata, query, title="Results"):
             prev_doc = metadata[doc_id - 1]
             if prev_doc.get("scene") == scene and prev_doc.get("clean_text"):
                 prev_speaker = prev_doc.get("speaker") 
-                context_before = f"[BEFORE] {prev_speaker}: {prev_doc['clean_text']}"
+                context_before = f"[Previous line:] {prev_speaker}: {prev_doc['clean_text']}"
         
         if doc_id + 1 < len(metadata):
             next_doc = metadata[doc_id + 1]
             if next_doc.get("scene") == scene and next_doc.get("clean_text"):
                 next_speaker = next_doc.get("speaker")
-                context_after = f"[AFTER] {next_speaker}: {next_doc['clean_text']}"
+                context_after = f"[Next line:] {next_speaker}: {next_doc['clean_text']}"
         
         print(f"{rank}. [Score: {score:.4f}] [ID: {doc_id}] Scene: {scene}")
        
@@ -81,8 +81,8 @@ def faiss_search(query, index, model, metadata, k=k_faiss):
     similarities = [(1.0 / (1.0 + scores[0][i]), int(indices[0][i])) for i in range(k)]
     
     print(f"[faiss_search] Query: {query}")
-    print("Raw distances:", scores[0][:3])
-    print("Converted similarities:", [s[0] for s in similarities[:3]])
+    #print("Raw distances:", scores[0][:3])
+    #print("Converted similarities:", [s[0] for s in similarities[:3]])
     
     return similarities
 
@@ -155,17 +155,33 @@ def evaluate_hybrid(queries: dict, bm25, docs, faiss_index, model, metadata, alp
     for query, relevant_ids in queries.items():
         hybrid_results, _, _ = improved_hybrid_search(query, bm25, docs, faiss_index, model, metadata, alpha, max(k_vals))
         retrieved_ids = [doc_id for _, doc_id in hybrid_results]
-
+        
         for k in k_vals:
             precision = precision_at_k(retrieved_ids, relevant_ids, k)
             ndcg = ndcg_at_k(retrieved_ids, relevant_ids, k)
             precision_scores[k].append(precision)
             ndcg_scores[k].append(ndcg)
 
-        map_scores.append(average_precision(retrieved_ids, relevant_ids))
-        mrr_scores.append(reciprocal_rank(retrieved_ids, relevant_ids))
+        map_score = (average_precision(retrieved_ids, relevant_ids))
+        mrr_score = (reciprocal_rank(retrieved_ids, relevant_ids))
+        map_scores.append(map_score)
+        mrr_scores.append(mrr_score)
+#
+        print(f"\n{'='*80}")
+        print(f"Query: {query}")
+        print(f"Relevant IDs: {relevant_ids}")
+        print(f"Retrieved IDs: {retrieved_ids}")
+        for k in k_vals:
+            hits = sum(1 for doc_id in retrieved_ids[:k] if doc_id in relevant_ids)
+            current_precision = precision_scores[k][-1]  
+            current_ndcg = ndcg_scores[k][-1] 
+            print(f"Hits@{k}: {hits}/{k}")
+            print(f"Precision@{k}: {current_precision:.3f}")
+            print(f"nDCG@{k}: {current_ndcg:.3f}")
+        
+        print(f"MRR: {mrr_score:.3f} | MAP: {map_score:.3f}")
 
-    print (f"\n Average metric scores for queries")
+    print (f"\nAverage metric scores for queries")
     for k in k_vals:
         print(f"Precision@{k}: {np.mean(precision_scores[k]):.3f}")
         print(f"nDCG@{k}:        {np.mean(ndcg_scores[k]):.3f}")
