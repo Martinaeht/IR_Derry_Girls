@@ -166,7 +166,7 @@ def evaluate_hybrid(queries: dict, bm25, docs, faiss_index, model, metadata, alp
         mrr_score = (reciprocal_rank(retrieved_ids, relevant_ids))
         map_scores.append(map_score)
         mrr_scores.append(mrr_score)
-#
+
         print(f"\n{'='*80}")
         print(f"Query: {query}")
         print(f"Relevant IDs: {relevant_ids}")
